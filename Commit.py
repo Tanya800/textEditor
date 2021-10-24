@@ -2,6 +2,7 @@ from datetime import datetime
 
 
 class Commit():
+
     def __init__(self, index=0, name='', snapshot='', tree='', parent=''):
         self.index = index
         self.name = name
