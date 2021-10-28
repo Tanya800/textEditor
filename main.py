@@ -1,5 +1,8 @@
 '''
 Проект текстового редактора с системой контроля версий
+    Функционал:
+    -   Восстановление состояния по сохраненному коммиту
+    -   Выбор ветки и выбор коммита
 '''
 
 import tkinter
@@ -14,15 +17,18 @@ from tkinter import ttk
 from Editor import *
 from Commit import *
 from Branch import *
+from Setting import *
 import pickle
 
 FILE_NAME = tkinter.NONE
+
+CURRENT_COMMIT = 0
 
 # файл с названиями всех веток
 FILE_PROJECT = ".vsc/text_editor.txt"
 
 # файл с названиями всех коммитов(файла коммита) в ветке (в данном случае в ветке мастер)
-FILE_MAIN_BRANCH = ".vsc/master.txt"
+FILE_MAIN_BRANCH = ""
 
 
 class Caretaker():
@@ -59,16 +65,28 @@ class Caretaker():
 
 # Добавление коммита в файл
 def commit():
-    name = eg.enterbox(msg='Введите название коммита', title ='Фиксация изменений', default ='commit_1')
+    name = eg.enterbox(msg='Введите название коммита', title='Фиксация изменений', default='commit_1')
 
     print(name)
-    if name==None:
+    if name == None:
         return
+
     shapshot = editor.createSnapshot()
-    current_commit = Commit(1, name, shapshot, 'parent', 'none')
-    out = open(FILE_NAME, 'wb')
-    pickle.dump(current_commit, out)
-    out.close()
+
+    parent = CURRENT_BRANCH.getSize() - 1 if CURRENT_BRANCH.getSize() != 0 else 0
+
+    current_commit = Commit(CURRENT_BRANCH.getSize(), name, shapshot, CURRENT_BRANCH.getName(), parent)
+
+    CURRENT_BRANCH.addCommit(current_commit)
+
+    CURRENT_BRANCH.setSize(CURRENT_BRANCH.getSize() + 1)
+    # out = open(FILE_NAME, 'wb')
+    # pickle.dump(current_commit, out)
+    # out.close()
+
+
+def push():
+    CURRENT_BRANCH.saveBranch(FILE_MAIN_BRANCH)
 
 
 # Загрузка коммита из файла
@@ -81,6 +99,7 @@ def get_commit():
     for inf in current_commit.getAll():
         print(inf)
     print(current_commit.name)
+
 
 #
 # def new_file():
@@ -137,21 +156,59 @@ def open_file():
 
 
 def info():
-    messagebox.showinfo("Information", "CDL Notepad v.0.1\nby CoderLog\nhttps://coderlog.top")
+    messagebox.showinfo("Information", CURRENT_PROJECT.getInfo())
 
 
 def saveBranch():
-    commit = Commit(0,'commit_first',editor.createSnapshot())
+    commit = Commit(0, 'commit_first', editor.createSnapshot())
     commit2 = Commit(1, 'commit_second', editor.createSnapshot())
-    master = Branch('master','',[commit,commit2])
+    master = Branch('master', '', [commit, commit2])
     master.setHead(1)
     master.saveBranch(FILE_MAIN_BRANCH)
 
-def getBranch():
-    master= Branch()
-    master.getBranch(FILE_MAIN_BRANCH)
-    for com in master.getCommits():
-        print(com.name)
+
+def getBranch(filename):
+    branch = Branch('master')
+    branch.getBranch(filename)
+    return branch
+
+
+def getProjectSetting():
+    out = open(FILE_PROJECT, 'rb')
+    try:
+        project = pickle.load(out)
+    except EOFError:
+        project = Project('TextEditor', str(datetime.now())[:19], DEFAULT_BRANCHES)
+    out.close()
+
+    return project
+
+
+def createBranch():
+    name = eg.enterbox(msg='Введите название новой ветки', title='Создание новой ветки', default='branch_1')
+
+    print(name)
+    if name == None:
+        return
+
+    global CURRENT_BRANCH
+
+    parent = CURRENT_BRANCH.getSize() - 1 if CURRENT_BRANCH.getSize() != 0 else 0
+    shapshot = editor.createSnapshot()
+
+    CURRENT_BRANCH = Branch(name)
+    CURRENT_PROJECT.addBranch(CURRENT_BRANCH.getName(), '/.vsc/' + name + '.txt')
+
+    current_commit = Commit(CURRENT_BRANCH.getSize(), 'init', shapshot, name, parent)
+    CURRENT_BRANCH.addCommit(current_commit)
+    print(CURRENT_BRANCH.getCommits())
+
+def changeBranch():
+    names = list()
+    for branch in CURRENT_PROJECT.getBranch():
+        names.append(branch)
+    out = eg.choicebox(msg="пожалуйста, выбери:", title="", choices=names)
+    print(out)
 
 def families_changed(event):
     text.configure(font=(families_cb.get()))
@@ -237,10 +294,14 @@ fileMenu.add_command(label="Save", command=save_stat)
 fileMenu.add_command(label="Save as", command=save_as)
 
 vcsMenu.add_command(label="Commit", command=commit)
+vcsMenu.add_command(label="Push", command=push)
 vcsMenu.add_command(label="Show commit", command=get_commit)
 
+branchMenu.add_command(label="Create branch", command=createBranch)
+branchMenu.add_command(label="Change branch", command=changeBranch)
+
 branchMenu.add_command(label="Save", command=saveBranch)
-branchMenu.add_command(label="Get", command=getBranch)
+# branchMenu.add_command(label="Get", command=getBranch)
 
 menuBar.add_cascade(label="File", menu=fileMenu)
 menuBar.add_cascade(label="VCS", menu=vcsMenu)
@@ -256,5 +317,10 @@ root.config(menu=menuBar)
 editor = Editor(text.get('1.0', tkinter.END))
 caretaker = Caretaker(editor)
 caretaker.backup()
+
+# ПРЕДВАРИТЕЛЬНАЯ НАСТРОЙКА ПРОЕКТА
+CURRENT_PROJECT = getProjectSetting()
+FILE_MAIN_BRANCH = CURRENT_PROJECT.getCurrentBranch()
+CURRENT_BRANCH = getBranch(FILE_MAIN_BRANCH)
 
 root.mainloop()
