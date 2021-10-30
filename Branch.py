@@ -18,7 +18,8 @@ class Branch:
         self.size = size
         self.head = head  # ИНДЕКС КОММИТА В МАССИВЕ КОММИТОВ
         self.commits = commits
-        print(f"Branch was created: {self.name}")
+        if self.name!='':
+            print(f"Branch was created: {self.name}")
 
     def getName(self):
         return self.name
@@ -56,13 +57,17 @@ class Branch:
         print('Branch was saved: {}'.format(self.name))
 
     def getBranch(self, fileName):
-        out = open(fileName, 'rb')
+
         try:
+            out = open(fileName, 'rb')
             newBranch = pickle.load(out)
+            out.close()
         except EOFError:
             return -1
-
-        out.close()
+        except FileNotFoundError:
+            out = open(fileName, 'wb+')
+            out.close()
+            return -1
 
         self.name = newBranch.name
         self.head = newBranch.head

@@ -21,7 +21,7 @@ class Project:
     def getInfo(self):
         return "Project " + self.name + "was created " + self.date
 
-    def getBranch(self):
+    def getBranches(self):
         return self.branches
 
     def getFilenameBranch(self, nameBranch):

@@ -3,6 +3,9 @@
     Функционал:
     -   Восстановление состояния по сохраненному коммиту
     -   Выбор ветки и выбор коммита
+    НЕ МЕНЯЕТСЯ ВЕТКА
+    НЕ ИЗМЕНЯЕТСЯ СОДЕРЖИМОЕ ФАЙЛА ПРИ ИЗМЕНЕНИИ ВЕТКИ\КОМИТА
+    НЕТ КНОПКИ ОТКАТИТЬСЯ
 '''
 
 import tkinter
@@ -19,6 +22,7 @@ from Commit import *
 from Branch import *
 from Setting import *
 import pickle
+import time
 
 FILE_NAME = tkinter.NONE
 
@@ -28,7 +32,7 @@ CURRENT_COMMIT = 0
 FILE_PROJECT = ".vsc/text_editor.txt"
 
 # файл с названиями всех коммитов(файла коммита) в ветке (в данном случае в ветке мастер)
-FILE_MAIN_BRANCH = ""
+# FILE_MAIN_BRANCH
 
 
 class Caretaker():
@@ -63,7 +67,7 @@ class Caretaker():
             print(memento.get_name())
 
 
-# Добавление коммита в файл
+# Добавление коммита в ветку
 def commit():
     name = eg.enterbox(msg='Введите название коммита', title='Фиксация изменений', default='commit_1')
 
@@ -79,26 +83,21 @@ def commit():
 
     CURRENT_BRANCH.addCommit(current_commit)
 
-    CURRENT_BRANCH.setSize(CURRENT_BRANCH.getSize() + 1)
-    # out = open(FILE_NAME, 'wb')
-    # pickle.dump(current_commit, out)
-    # out.close()
 
-
+# Сохранение коммитов в файле ветки
 def push():
-    CURRENT_BRANCH.saveBranch(FILE_MAIN_BRANCH)
+    CURRENT_BRANCH.saveBranch(FILE_CURRENT_BRANCH)
+
 
 
 # Загрузка коммита из файла
-def get_commit():
-    out = open(FILE_NAME, 'rb')
-    last_commit = pickle.load(out)
-    out.close()
-    current_commit = Commit()
-    current_commit.setCommit(last_commit)
-    for inf in current_commit.getAll():
-        print(inf)
-    print(current_commit.name)
+def showCommits():
+    commits = CURRENT_BRANCH.getCommits()
+    message=''
+    for commit in commits:
+        message+= commit.getInfo()+'\n'
+
+    messagebox.showinfo("All commits", message)
 
 
 #
@@ -164,12 +163,15 @@ def saveBranch():
     commit2 = Commit(1, 'commit_second', editor.createSnapshot())
     master = Branch('master', '', [commit, commit2])
     master.setHead(1)
-    master.saveBranch(FILE_MAIN_BRANCH)
+    master.saveBranch(FILE_CURRENT_BRANCH)
 
 
 def getBranch(filename):
-    branch = Branch('master')
+    branch = Branch()
     branch.getBranch(filename)
+    if branch == -1:
+        print('Не успешное считывание из файла, создается ветка по умолчанию master')
+        return Branch('master')
     return branch
 
 
@@ -191,24 +193,45 @@ def createBranch():
     if name == None:
         return
 
-    global CURRENT_BRANCH
+    global CURRENT_BRANCH, CURRENT_PROJECT, FILE_CURRENT_BRANCH
 
     parent = CURRENT_BRANCH.getSize() - 1 if CURRENT_BRANCH.getSize() != 0 else 0
     shapshot = editor.createSnapshot()
 
-    CURRENT_BRANCH = Branch(name)
-    CURRENT_PROJECT.addBranch(CURRENT_BRANCH.getName(), '/.vsc/' + name + '.txt')
+    print("Текущая ветка проекта " , CURRENT_BRANCH.getName())
+
+    CURRENT_BRANCH = Branch(name,0,0,[])
+    print("Созданная ветка:  " + CURRENT_BRANCH.getName())
+
+    CURRENT_PROJECT.addBranch(CURRENT_BRANCH.getName(), '.vsc/' + name + '.txt')
+    CURRENT_PROJECT.setCurrentBranch(name)
+
+    FILE_CURRENT_BRANCH = CURRENT_PROJECT.getFilenameBranch(name)
 
     current_commit = Commit(CURRENT_BRANCH.getSize(), 'init', shapshot, name, parent)
     CURRENT_BRANCH.addCommit(current_commit)
-    print(CURRENT_BRANCH.getCommits())
+
+    print("Количество коммитов в ветке: ", len(CURRENT_BRANCH.getCommits()))
 
 def changeBranch():
     names = list()
-    for branch in CURRENT_PROJECT.getBranch():
+    global CURRENT_BRANCH, FILE_CURRENT_BRANCH, CURRENT_PROJECT
+
+    for branch in CURRENT_PROJECT.getBranches():
         names.append(branch)
-    out = eg.choicebox(msg="пожалуйста, выбери:", title="", choices=names)
-    print(out)
+    out = eg.choicebox(msg="Выберете ветку: ", title="Ветки проекта", choices=names)
+
+    if(out == None):
+        return
+    else:
+        print("Выбрана ветка: ", out)
+
+    CURRENT_PROJECT.setCurrentBranch(out)
+    FILE_CURRENT_BRANCH = CURRENT_PROJECT.getCurrentBranch()
+    CURRENT_BRANCH = getBranch(FILE_CURRENT_BRANCH)
+    print("После выбора новой ветки FILE_MAIN_BRANCH:", CURRENT_PROJECT.getCurrentBranch())
+    print("CURRENT_BRANCH:", CURRENT_BRANCH.getName())
+
 
 def families_changed(event):
     text.configure(font=(families_cb.get()))
@@ -295,7 +318,7 @@ fileMenu.add_command(label="Save as", command=save_as)
 
 vcsMenu.add_command(label="Commit", command=commit)
 vcsMenu.add_command(label="Push", command=push)
-vcsMenu.add_command(label="Show commit", command=get_commit)
+vcsMenu.add_command(label="Show commit", command=showCommits)
 
 branchMenu.add_command(label="Create branch", command=createBranch)
 branchMenu.add_command(label="Change branch", command=changeBranch)
@@ -320,7 +343,12 @@ caretaker.backup()
 
 # ПРЕДВАРИТЕЛЬНАЯ НАСТРОЙКА ПРОЕКТА
 CURRENT_PROJECT = getProjectSetting()
-FILE_MAIN_BRANCH = CURRENT_PROJECT.getCurrentBranch()
-CURRENT_BRANCH = getBranch(FILE_MAIN_BRANCH)
+FILE_CURRENT_BRANCH = CURRENT_PROJECT.getCurrentBranch()
+CURRENT_BRANCH = getBranch(FILE_CURRENT_BRANCH)
+print()
+print("Первоначальная настройка проекта завершена")
+print("FILE_MAIN_BRANCH: ", FILE_CURRENT_BRANCH)
+print("CURRENT_BRANCH: ", CURRENT_BRANCH.getName())
+time.sleep(5)
 
 root.mainloop()

@@ -26,6 +26,10 @@ class Commit():
         self.date = commit.date
         self.parent = commit.parent
 
+    def getInfo(self):
+        return str(self.index) + " commit named " + self.name+ " in "+ self.date
+
+
     def getAll(self):
         return {
             'index': self.index,
