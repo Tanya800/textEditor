@@ -1,4 +1,5 @@
 from datetime import datetime
+
 '''
     Классс Коммит - отвечает за создание и обработку одного коммита 
     Реализует функционал:
@@ -7,6 +8,7 @@ from datetime import datetime
         - вернуться к предыдущему коммиту
         - отобразить в какой ветке находится тот или иной коммит
 '''
+
 
 class Commit():
 
@@ -18,6 +20,20 @@ class Commit():
         self.date = str(datetime.now())[:19]
         self.parent = parent
 
+    def __eq__(self, other):
+        res = True
+        if self.index != other.index:
+            res = False
+        elif self.name != other.name:
+            res = False
+        elif self.date != other.date:
+            res = False
+        elif self.branch != other.branch:
+            res = False
+        elif self.parent != other.parent:
+            res = False
+        return res
+
     def setCommit(self, commit):
         self.index = commit.index
         self.name = commit.name
@@ -26,9 +42,17 @@ class Commit():
         self.date = commit.date
         self.parent = commit.parent
 
-    def getInfo(self):
-        return str(self.index) + " commit named " + self.name+ " in "+ self.date
+    def getIndex(self):
+        return self.index
 
+    def getName(self):
+        return self.name
+
+    def getInfo(self):
+        return str(self.index) + " commit named " + self.name + " in " + self.date
+
+    def getSnapshot(self):
+        return self.snapshot
 
     def getAll(self):
         return {

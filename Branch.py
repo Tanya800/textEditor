@@ -13,12 +13,12 @@ import pickle
 
 class Branch:
 
-    def __init__(self, name='', size=0, head=0, commits = []):
+    def __init__(self, name='', size=0, head=0, commits=[]):
         self.name = name
         self.size = size
         self.head = head  # ИНДЕКС КОММИТА В МАССИВЕ КОММИТОВ
         self.commits = commits
-        if self.name!='':
+        if self.name != '':
             print(f"Branch was created: {self.name}")
 
     def getName(self):
@@ -32,6 +32,13 @@ class Branch:
 
     def getHead(self):
         return self.commits[self.head]
+
+    def getIndexCommit(self, commit):
+        commits = self.getCommits()
+        for i in range(len(commits)):
+            if commits[i].getName() == commit:
+                return i
+        return -1
 
     def setSize(self, size):
         self.size = size
@@ -47,9 +54,8 @@ class Branch:
         self.setHead(self.size)
         self.size += 1
 
-
-
     ''' МЕТОДЫ ДЛЯ РАБОТЫ СO СЧИТЫВАНИЕМ ВЕТКИ ИЗ ФАЙЛА'''
+
     def saveBranch(self, fileName):
         out = open(fileName, 'wb')
         pickle.dump(self, out)
@@ -67,9 +73,11 @@ class Branch:
         except FileNotFoundError:
             out = open(fileName, 'wb+')
             out.close()
-            return -1
+            return -2
 
         self.name = newBranch.name
+        self.size = newBranch.size
         self.head = newBranch.head
         self.commits = newBranch.commits
         print('Branch was read: {}'.format(self.name))
+        return 1

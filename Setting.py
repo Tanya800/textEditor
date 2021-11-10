@@ -27,6 +27,14 @@ class Project:
     def getFilenameBranch(self, nameBranch):
         return self.branches[nameBranch]
 
+    def getBranchByFilename(self, filename):
+        for branch in self.branches:
+            if branch == 'current':
+                continue
+            elif self.branches[branch] == filename:
+                return branch
+        return -1
+
     def getCurrentBranch(self):
         return self.branches['current']
 

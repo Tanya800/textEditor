@@ -1,6 +1,7 @@
 from datetime import datetime
 from abc import ABC, abstractmethod
 
+
 class Memento(ABC):
     """
     Интерфейс Снимка предоставляет способ извлечения метаданных снимка, таких
@@ -27,8 +28,9 @@ class Memento(ABC):
     def get_front(self) -> str:
         pass
 
+
 class Editor:
-    def __init__(self, text='', size=6, front='Times',selectionWidth=0):
+    def __init__(self, text='', size=6, front='Times', selectionWidth=0):
         """Constructor"""
         self.text = text
         self.size = size
@@ -36,17 +38,17 @@ class Editor:
         self.selectionWidth = selectionWidth
         print(f"Editor: My initial text is: {self.text}")
 
-    def setText(self,text):
-        self.text=text
+    def setText(self, text):
+        self.text = text
 
-    def setSize(self,size):
-        self.size=size
+    def setSize(self, size):
+        self.size = size
 
-    def setFront(self,front):
-        self.front=front
+    def setFront(self, front):
+        self.front = front
 
     def createSnapshot(self):
-        return Snapshot(self,self.text,self.size,self.front,self.selectionWidth)
+        return Snapshot(self, self.text, self.size, self.front, self.selectionWidth)
 
     def restore(self, memento: Memento) -> None:
         """
@@ -61,16 +63,16 @@ class Editor:
 class Snapshot(Memento):
     editor = Editor()
 
-    def __init__(self,editor,text,size,front,selectionWidth):
-        self.editor=editor
+    def __init__(self, editor, text, size, front, selectionWidth):
+        self.editor = editor
         self.size = size
         self.front = front
-        self.text=text
-        self._date=str(datetime.now())[:19]
-        self.selectionWidth=selectionWidth
+        self.text = text
+        self._date = str(datetime.now())[:19]
+        self.selectionWidth = selectionWidth
 
     def restore(self):
-        self.editor.setText(self.text)
+        self.editor.saveTextStat(self.text)
         self.editor.setSize(self.size)
         self.editor.setFront(self.front)
 
@@ -88,4 +90,3 @@ class Snapshot(Memento):
 
     def get_date(self) -> str:
         return self._date
-
