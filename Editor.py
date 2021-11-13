@@ -1,6 +1,6 @@
 from datetime import datetime
 from abc import ABC, abstractmethod
-
+from Styles import *
 
 class Memento(ABC):
     """
@@ -21,60 +21,47 @@ class Memento(ABC):
         pass
 
     @abstractmethod
-    def get_size(self) -> int:
-        pass
-
-    @abstractmethod
-    def get_front(self) -> str:
+    def get_styles(self) -> []:
         pass
 
 
 class Editor:
-    def __init__(self, text='', size=6, front='Times', selectionWidth=0):
+    def __init__(self, text='', styles=Style()):
         """Constructor"""
         self.text = text
-        self.size = size
-        self.front = front
-        self.selectionWidth = selectionWidth
-        print(f"Editor: My initial text is: {self.text}")
+        self.styles = styles # объект типа Styles
+        # print(f"Editor: My initial text is: {self.text}")
 
     def setText(self, text):
         self.text = text
 
-    def setSize(self, size):
-        self.size = size
-
-    def setFront(self, front):
-        self.front = front
+    def setStyles(self, styles):
+        self.styles = styles
 
     def createSnapshot(self):
-        return Snapshot(self, self.text, self.size, self.front, self.selectionWidth)
+        return Snapshot(self, self.text, self.styles)
 
     def restore(self, memento: Memento) -> None:
         """
         Восстанавливает состояние Создателя из объекта снимка.
         """
         self.text = memento.get_text()
-        self.size = memento.get_size()
-        self.front = memento.get_front()
+        self.styles = memento.get_styles()
         print(f"Originator: My text has changed to: {self.text}")
 
 
 class Snapshot(Memento):
     editor = Editor()
 
-    def __init__(self, editor, text, size, front, selectionWidth):
+    def __init__(self, editor, text, styles=[]):
         self.editor = editor
-        self.size = size
-        self.front = front
         self.text = text
+        self.styles = styles
         self._date = str(datetime.now())[:19]
-        self.selectionWidth = selectionWidth
 
     def restore(self):
         self.editor.saveTextStat(self.text)
-        self.editor.setSize(self.size)
-        self.editor.setFront(self.front)
+        self.editor.setStyles(self.styles)
 
     def get_text(self):
         return self.text
@@ -82,11 +69,10 @@ class Snapshot(Memento):
     def get_name(self):
         return f"{self.text} / ({self._date})"
 
-    def get_size(self):
-        return self.size
-
-    def get_front(self):
-        return self.front
+    def get_styles(self):
+        return self.styles
 
     def get_date(self) -> str:
         return self._date
+
+

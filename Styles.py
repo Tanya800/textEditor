@@ -1,40 +1,138 @@
-class Styles:
-    def __init__(self, tags=[], size=6, font='Times'):
+import tkinter.font as tkFont
+
+class Style:
+    def __init__(self, tags=[], size=16, font='Arial', bold="normal", cursive="roman"):
         """Constructor"""
         self.tags = tags
         self.size = size
         self.font = font
+        self.bold = bold
+        self.cursive = cursive
         print(f"Styles: My initial font is: {self.font}")
 
-    def setFont(self,font):
-        self.font=font
-
-    def setSize(self,size):
-        self.size=size
-
-    def setTags(self,tags):
-        self.tags=tags
-
-    def addTags(self,tag):
-        self.tags.append(tag)
-
-class Tag:
-    def __init__(self, index_start, index_end ,size,weight,slant, font='Times'):
-        self.index_start = index_start
-        self.index_end = index_end
-        self.size = size
-        self.weight = weight
-        self.slant = slant
+    def setFont(self, font):
         self.font = font
 
+    def setSize(self, size):
+        self.size = size
+
+    def setBold(self, bold="bold"):
+        self.bold = bold
+
+    def setCursive(self,cursive = "italic"):
+        self.cursive = cursive
+
+    def setTags(self, tags):
+        self.tags = tags
+
+    def getConfig(self):
+        return {
+            'font': self.font,
+            'size': self.size,
+            'bold': self.bold,
+            'cursive': self.cursive
+        }
+
+    def getTags(self):
+        return self.tags
+
+    def getFont(self):
+        return self.font
+
+    def getSize(self):
+        return self.size
+
+    def getBold(self):
+        return self.bold
+
+    def getCursive(self):
+        return self.cursive
+
+    def addTag(self, tag):
+        self.tags.append(tag)
+
+    def searchTag(self, start_, end_, config, value):
+        for i in range(len(self.tags)):
+            if(self.tags[i].start_ == start_):
+                if(self.tags[i].end_==end_ and self.tags[i].getConfig()[config] == value):
+                    return i
+        return -1
+
+    def tagIsUniqueWithoutOne(self, tag, feature):
+        tag_conf = tag.getConfig()
+        self_conf = self.getConfig()
+        for ft in self_conf:
+            if ft != feature and tag_conf[ft] != self_conf[ft]:
+                return False
+        return True
+
+    def deleteTag(self,index):
+        self.tags.pop(index)
+
+    def updateTag(self,index,tag):
+        self.tags[index] = tag
+
+
+
+
+
+class Tag:
+    def __init__(self, name="", start_=0, end_=0, size=16, font='Arial', bold="normal", cursive="roman"):
+        """Constructor"""
+        self.name = name
+        self.start_ = start_
+        self.end_ = end_
+        self.size = size
+        self.font = font
+        self.bold = bold
+        self.cursive = cursive
+        print(f"tag: My initial name is: {self.name}")
+
+
+    def setFont(self, font):
+        self.font = font
+
+    def setSize(self, size):
+        self.size = size
+
+    def setBold(self, bold="bold"):
+        self.bold = bold
+
+    def setCursive(self,cursive):
+        self.cursive = cursive
+
+    def getConfig(self):
+        return {
+            'font': self.font,
+            'size': self.size,
+            'bold': self.bold,
+            'cursive': self.cursive
+        }
+
+    def getName(self):
+        return self.name
+
     def getStart(self):
-        return self.index_start
+        return self.start_
 
     def getEnd(self):
-        return self.index_end
+        return self.end_
 
-    def setStart(self,index):
-        self.index_start=index
 
-    def setEnd(self,index):
-        self.index_end=index
+    def getName(self):
+        return self.name
+
+    def getFont(self):
+        return self.font
+
+    def getSize(self):
+        return self.size
+
+    def getBold(self):
+        return self.bold
+
+    def getCursive(self):
+        return self.cursive
+
+    def getFont(self):
+        return tkFont.Font(family=self.font, size=self.size, weight=self.bold, slant=self.cursive)

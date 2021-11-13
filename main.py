@@ -21,9 +21,12 @@ from Editor import *
 from Commit import *
 from Branch import *
 from Setting import *
+from Styles import *
 import pickle
 import time
 
+BOLD = "bold"
+CURSIVE = "italic"
 FILE_NAME = tkinter.NONE
 
 CURRENT_COMMIT = 0
@@ -69,6 +72,11 @@ class Caretaker():
 
     def restart(self):
         self._mementos = []
+
+    def updateStyle(self, style):
+        editor.setStyles(style)
+
+
 
 
 # Добавление коммита в ветку
@@ -146,12 +154,6 @@ def checkout():
 #     text.delete('1.0', tkinter.END)
 #
 
-# def save_file():
-#     data = text.get('1.0', tkinter.END)
-#     out = open(FILE_NAME, 'w')
-#     out.write(data)
-#     out.close()
-#
 
 # Сохранение состояния текстового редактора через класс опекуна
 def saveTextStat(event=NONE):
@@ -322,6 +324,123 @@ def click_smaller():
     text.tag_add('tag1', start_index, end_index)
     text.tag_config("tag1", font=fontExample)
 
+def click_bold():
+
+    indexes = getPartOfText()
+
+    if indexes == -1:
+
+        print("Стиль ко всему тексту")
+        if CURRENT_STYLE.getBold() == BOLD:
+            CURRENT_STYLE.setBold("normal")
+        else:
+            CURRENT_STYLE.setBold()
+
+        config_style = CURRENT_STYLE.getConfig()
+        font = tkFont.Font(family=config_style['font'], size=config_style['size'], weight=config_style['bold'], slant=config_style['cursive'])
+        text.config(font=font)
+
+    else:
+        start_index, end_index = indexes
+
+        is_exist = CURRENT_STYLE.searchTag(start_index,end_index,BOLD,BOLD)
+
+        if is_exist != -1:
+            print()
+
+            tags = CURRENT_STYLE.getTags()
+            current_tag = tags[is_exist]
+            print('Тэг '+current_tag.getName() + ' существует')
+
+            if CURRENT_STYLE.tagIsUniqueWithoutOne(current_tag, 'bold'):
+                print('Полностью удаляем тэг')
+                text.tag_remove(current_tag.getName(), "1.0", "end")
+                CURRENT_STYLE.deleteTag(is_exist)
+            else:
+
+                if(current_tag.getBold == BOLD):
+                    current_tag.setBold("normal")
+                else:
+                    current_tag.setBold()
+                text.tag_remove(current_tag.getName(), "1.0", "end")
+                text.tag_add(current_tag.getName(), current_tag.getStart(),  current_tag.getEnd())
+                text.tag_config(current_tag.getName(), font= current_tag.getFont())
+
+                CURRENT_STYLE.updateTag(is_exist, current_tag)
+
+        else:
+            stand_conf = CURRENT_STYLE.getConfig()
+            new_tag = Tag(start_index+end_index+'bold', start_index,end_index,stand_conf['size'],stand_conf['font'],"bold", stand_conf['cursive'] )
+            text.tag_add(new_tag.getName(), new_tag.getStart(), new_tag.getEnd())
+            text.tag_config(new_tag.getName(), font=new_tag.getFont())
+
+            CURRENT_STYLE.addTag(new_tag)
+
+
+
+def getPartOfText():
+    try:
+        start_index = text.index(tkinter.SEL_FIRST)
+        end_index = text.index(tkinter.SEL_LAST)
+        return [start_index, end_index]
+    except TclError:
+        return -1
+
+def click_cursive():
+
+    indexes = getPartOfText()
+
+    if indexes == -1:
+
+        print("Стиль ко всему тексту")
+        if CURRENT_STYLE.getCursive() == CURSIVE:
+            CURRENT_STYLE.setCursive("roman")
+        else:
+            CURRENT_STYLE.setCursive()
+
+        config_style = CURRENT_STYLE.getConfig()
+        font = tkFont.Font(family=config_style['font'], size=config_style['size'], weight=config_style['bold'],
+                           slant=config_style['cursive'])
+        text.config(font=font)
+
+    else:
+        start_index, end_index = indexes
+
+        is_exist = CURRENT_STYLE.searchTag(start_index, end_index, 'cursive', CURSIVE)
+
+        if is_exist != -1:
+            print()
+
+            tags = CURRENT_STYLE.getTags()
+            current_tag = tags[is_exist]
+            print('Тэг ' + current_tag.getName() + ' существует')
+
+            if CURRENT_STYLE.tagIsUniqueWithoutOne(current_tag, 'cursive'):
+                print('Полностью удаляем тэг')
+                text.tag_remove(current_tag.getName(), "1.0", "end")
+                CURRENT_STYLE.deleteTag(is_exist)
+            else:
+
+                if (current_tag.getCursive() == CURSIVE):
+                    current_tag.setCursive("roman")
+                else:
+                    current_tag.setCursive()
+
+                text.tag_remove(current_tag.getName(), "1.0", "end")
+                text.tag_add(current_tag.getName(), current_tag.getStart(), current_tag.getEnd())
+                text.tag_config(current_tag.getName(), font=current_tag.getFont())
+
+                CURRENT_STYLE.updateTag(is_exist, current_tag)
+
+        else:
+            stand_conf = CURRENT_STYLE.getConfig()
+            new_tag = Tag(start_index + end_index + 'cursive', start_index, end_index, stand_conf['size'],
+                          stand_conf['font'], stand_conf['bold'], "italic")
+            text.tag_add(new_tag.getName(), new_tag.getStart(), new_tag.getEnd())
+            text.tag_config(new_tag.getName(), font=new_tag.getFont())
+
+            CURRENT_STYLE.addTag(new_tag)
+
 def backspace(event):
     print(text.index(SEL_LAST))
     print('backspace')
@@ -347,7 +466,7 @@ def exit():
 
 
 root = tkinter.Tk()
-root.title("CDL Notepad v.0.1")
+root.title("Text Editor v.1.2")
 
 root.minsize(width=500, height=500)
 root.maxsize(width=500, height=500)
@@ -362,7 +481,7 @@ text.configure(yscrollcommand=scrollb.set)
 toolbar = Frame(root)
 toolbar.pack(side=TOP, fill=X)
 
-families = ("Times", "Courier", "Helvetica")
+families = ("Arial" ,"Times", "Courier", "Helvetica")
 selected_fam = tkinter.StringVar()
 families_cb = ttk.Combobox(toolbar, textvariable=selected_fam)
 
@@ -380,22 +499,27 @@ btn_smaller = Button(toolbar, text="A↓", background="#555", foreground="#ccc",
                      command=click_smaller)
 btn_smaller.pack(side=LEFT, padx=0, pady=0)
 
+btn_bold = Button(toolbar, text="B", background="#555", foreground="#ccc",
+                    command=click_bold)
+btn_bold.pack(side=LEFT, padx=0, pady=0)
+
+btn_cursive = Button(toolbar, text="I", background="#555", foreground="#ccc",
+                    command=click_cursive)
+btn_cursive.pack(side=LEFT, padx=0, pady=0)
+
+label1 = Label(toolbar,text="Size text: 16")
+label1.pack(side=LEFT, padx=0, pady=0)
+
 text.pack()
-# text.insert(END, '''\
-# blah blah blah Failed blah blah
-# blah blah blah Passed blah blah
-# blah blah blah Failed blah blah
-# blah blah blah Failed blah blah
-# ''')
 
 menuBar = tkinter.Menu(root)
-fileMenu = tkinter.Menu(menuBar)
+# fileMenu = tkinter.Menu(menuBar)
 vcsMenu = tkinter.Menu(menuBar)
 branchMenu = tkinter.Menu(menuBar)
 
 # fileMenu.add_command(label="New", command=new_file)
 # fileMenu.add_command(label="Open", command=open_file)
-fileMenu.add_command(label="Save", command=saveTextStat)
+# fileMenu.add_command(label="Save", command=saveTextStat)
 # fileMenu.add_command(label="Save as", command=save_as)
 
 vcsMenu.add_command(label="Commit", command=commit)
@@ -403,18 +527,19 @@ vcsMenu.add_command(label="Push", command=push)
 vcsMenu.add_command(label="Checkout", command=checkout)
 vcsMenu.add_command(label="Show commit", command=showCommits)
 
-branchMenu.add_command(label="Create branch", command=createBranch)
-branchMenu.add_command(label="Change branch", command=changeBranch)
-
-branchMenu.add_command(label="Save", command=saveBranch)
+branchMenu.add_command(label="New", command=createBranch)
+branchMenu.add_command(label="Change", command=changeBranch)
+# Save
+branchMenu.add_command(label="All branches", command=saveBranch)
 # branchMenu.add_command(label="Get", command=getBranch)
 
-menuBar.add_cascade(label="File", menu=fileMenu)
+
 menuBar.add_cascade(label="VCS", menu=vcsMenu)
 menuBar.add_cascade(label="Branch", menu=branchMenu)
 menuBar.add_cascade(label="Info", command=info)
+menuBar.add_cascade(label="Save", menu=saveTextStat)
 menuBar.add_cascade(label="Undo", command=Undo)
-menuBar.add_cascade(label="Show states", command=show_states)
+# menuBar.add_cascade(label="Show states", command=show_states)
 
 menuBar.add_cascade(label="Exit", command=exit)
 
@@ -432,12 +557,26 @@ print("FILE_MAIN_BRANCH: ", FILE_CURRENT_BRANCH)
 print("CURRENT_BRANCH: ", CURRENT_BRANCH.getName())
 print()
 
-text.insert(END,CURRENT_BRANCH.getHead().getSnapshot().get_text() )
-editor = Editor(text.get('1.0', tkinter.END))
+
+
+
+
+
+if(CURRENT_BRANCH.getSize()>0):
+    text.insert(END, CURRENT_BRANCH.getHead().getSnapshot().get_text())
+    CURRENT_STYLE = CURRENT_BRANCH.getHead().getSnapshot().get_styles()
+else:
+    CURRENT_STYLE = Style()
+
+current_font = tkFont.Font(family=CURRENT_STYLE.getFont(), size=CURRENT_STYLE.getSize(),
+                          weight=CURRENT_STYLE.getBold(), slant=CURRENT_STYLE.getCursive())
+
+text.configure(font=current_font)
+editor = Editor(text.get('1.0', tkinter.END), styles=CURRENT_STYLE)
+
 caretaker = Caretaker(editor)
 caretaker.backup()
 
-# time.sleep(5)
 
 # Добавление команд на нажатие клавиатуры
 root.bind('<Control-s>', saveTextStat)
