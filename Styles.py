@@ -1,7 +1,8 @@
 import tkinter.font as tkFont
 
+
 class Style:
-    def __init__(self, tags=[], size=16, font='Arial', bold="normal", cursive="roman"):
+    def __init__(self, tags=[], font='Helvetica', size=16, bold="normal", cursive="roman"):
         """Constructor"""
         self.tags = tags
         self.size = size
@@ -19,7 +20,7 @@ class Style:
     def setBold(self, bold="bold"):
         self.bold = bold
 
-    def setCursive(self,cursive = "italic"):
+    def setCursive(self, cursive="italic"):
         self.cursive = cursive
 
     def setTags(self, tags):
@@ -53,31 +54,38 @@ class Style:
 
     def searchTag(self, start_, end_, config, value):
         for i in range(len(self.tags)):
-            if(self.tags[i].start_ == start_):
-                if(self.tags[i].end_==end_ and self.tags[i].getConfig()[config] == value):
+            if (self.tags[i].start_ == start_):
+                if (self.tags[i].end_ == end_ and self.tags[i].getConfig()[config] == value):
                     return i
         return -1
 
+    def findTag(self, start_, end_):
+        for i in range(len(self.tags)):
+            if (self.tags[i].start_ == start_):
+                if self.tags[i].end_ == end_:
+                    return i
+        return -1
+
+# ПРОВЕРКА ТЕГА НА УНИКАЛЬНОСТЬ. ТЕГ СОДЕРЖИТ ОДИН ОТЛИЧНЫЙ ПАРАМЕТР ИЛИ НЕСКОЛЬКО
     def tagIsUniqueWithoutOne(self, tag, feature):
+
         tag_conf = tag.getConfig()
         self_conf = self.getConfig()
+
         for ft in self_conf:
             if ft != feature and tag_conf[ft] != self_conf[ft]:
                 return False
         return True
 
-    def deleteTag(self,index):
+    def deleteTag(self, index):
         self.tags.pop(index)
 
-    def updateTag(self,index,tag):
+    def updateTag(self, index, tag):
         self.tags[index] = tag
 
 
-
-
-
 class Tag:
-    def __init__(self, name="", start_=0, end_=0, size=16, font='Arial', bold="normal", cursive="roman"):
+    def __init__(self, name="", start_=0, end_=0, font='Helvetica', size=16, bold="normal", cursive="roman"):
         """Constructor"""
         self.name = name
         self.start_ = start_
@@ -88,7 +96,6 @@ class Tag:
         self.cursive = cursive
         print(f"tag: My initial name is: {self.name}")
 
-
     def setFont(self, font):
         self.font = font
 
@@ -98,7 +105,7 @@ class Tag:
     def setBold(self, bold="bold"):
         self.bold = bold
 
-    def setCursive(self,cursive):
+    def setCursive(self, cursive="italic"):
         self.cursive = cursive
 
     def getConfig(self):
@@ -118,11 +125,7 @@ class Tag:
     def getEnd(self):
         return self.end_
 
-
-    def getName(self):
-        return self.name
-
-    def getFont(self):
+    def getFamilies(self):
         return self.font
 
     def getSize(self):

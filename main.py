@@ -34,10 +34,9 @@ CURRENT_COMMIT = 0
 # файл с названиями всех веток
 FILE_PROJECT = ".vsc/text_editor.txt"
 
+CURRENT_STYLE = Style()
 
-# файл с названиями всех коммитов(файла коммита) в ветке (в данном случае в ветке мастер)
-# FILE_MAIN_BRANCH
-
+styles=[]
 
 class Caretaker():
     """
@@ -58,7 +57,9 @@ class Caretaker():
         if not len(self._mementos):
             return
 
+
         memento = self._mementos.pop()
+
         print(f"Caretaker: Restoring text to: {memento.get_name()}")
         try:
             self._editor.restore(memento)
@@ -70,20 +71,35 @@ class Caretaker():
         for memento in self._mementos:
             print(memento.get_name())
 
+    def len_moments(self):
+        return len(self._mementos)
+
     def restart(self):
         self._mementos = []
 
     def updateStyle(self, style):
-        editor.setStyles(style)
+        print('editor update style')
+        self._editor.setStyle(style)
+
+    def updateText(self, text):
+        print('editor update text')
+        self._editor.setText(text)
 
 
-
+def createdStyle(old):
+    tags=[]
+    for tag in old.getTags():
+        new = Tag(tag.getName(),tag.getStart(),tag.getEnd(),tag.getFamilies(),tag.getSize(),tag.getBold(),tag.getCursive())
+        tags.append(new)
+    style = Style(tags,old.getFont(),old.getSize(),old.getBold(),old.getCursive())
+    return style
 
 # Добавление коммита в ветку
 def commit():
+
     print(CURRENT_BRANCH.getSize())
     print(CURRENT_BRANCH.head)
-    if (CURRENT_BRANCH.getSize() != 0) & ((CURRENT_BRANCH.getSize()-1) != CURRENT_BRANCH.head):
+    if (CURRENT_BRANCH.getSize() != 0) & ((CURRENT_BRANCH.getSize() - 1) != CURRENT_BRANCH.head):
         eg.msgbox("Следует создать новую ветку!", ok_button="OK")
         return
 
@@ -95,13 +111,28 @@ def commit():
     if name == None:
         return
 
-    shapshot = editor.createSnapshot()
-    print(shapshot.get_text())
+    shops = editor.createSnapshot()
+
     parent = CURRENT_BRANCH.getSize() - 1 if CURRENT_BRANCH.getSize() != 0 else 0
 
-    current_commit = Commit(CURRENT_BRANCH.getSize(), name, shapshot, CURRENT_BRANCH.getName(), parent)
+    current_commit = Commit(CURRENT_BRANCH.getSize(), name, shops, CURRENT_BRANCH.getName(), parent)
+    print('Стиль сохраняемого коммита', end=' : ')
+    print(shops.get_style().getConfig())
 
     CURRENT_BRANCH.addCommit(current_commit)
+    showAllStylesForCommits()
+
+def showAllStylesForCommits():
+
+    commits = CURRENT_BRANCH.getCommits()
+    for commit in commits:
+        print(commit.getInfo() ,end=': ')
+        style = commit.getSnapshot().get_style()
+        print(style.getConfig())
+
+        for tag in style.getTags():
+            print(tag.getConfig())
+
 
 
 # Сохранение коммитов в файле ветки
@@ -124,6 +155,7 @@ def checkout():
 
     names = list()
     currentCommits = {}
+
     global CURRENT_BRANCH, FILE_CURRENT_BRANCH, CURRENT_PROJECT
 
     for commit in CURRENT_BRANCH.getCommits():
@@ -146,40 +178,77 @@ def checkout():
     updateText(CURRENT_BRANCH.getHead())
 
 
-
-#
-# def new_file():
-#     global FILE_NAME
-#     FILE_NAME = "Untitled.txt"
-#     text.delete('1.0', tkinter.END)
-#
-
-
 # Сохранение состояния текстового редактора через класс опекуна
-def saveTextStat(event=NONE):
+def saveTextStat():
+    print('saving state...')
+    caretaker.updateText(text.get('1.0', tkinter.END))
+    caretaker.updateStyle(createdStyle(CURRENT_STYLE))
     editor.setText(text.get('1.0', tkinter.END))
+    editor.setStyle(createdStyle(CURRENT_STYLE))
     caretaker.backup()
+
+
+def shortSaving():
+    print('saving state...')
+    styles.append(createdStyle(CURRENT_STYLE))
+    for style in styles:
+        print(style)
+
+
+def showShortSaving():
+    print('Show states')
+    for style in styles:
+        print(style.getConfig())
 
 def preparingForCommit():
     editor.setText(text.get('1.0', tkinter.END))
+    editor.setStyle(createdStyle(CURRENT_STYLE))
     caretaker.restart()
 
-# добавить сохранение текущих параметров
 
-def Undo(event = NONE):
+def Undo():
+    print('trying undo...')
+
     caretaker.undo()
+    if caretaker.len_moments() == 0:
+        return
+
     moment = editor.createSnapshot()
-    changeTextEditor(moment.get_text())
+    changeTextEditor(moment)
+    # newText = moment.get_text()
+    #
+    # text.delete('1.0', END)
+    # text.insert(1.0, newText)
+    #
+    # global CURRENT_STYLE
+    # new_style = createdStyle(moment.get_style())
+    # print('NEW STYLE')
+    #
+    # print(new_style.getConfig())
+    # CURRENT_STYLE = new_style
+    # upStyles()
 
 
 def updateText(commit):
+
     snapshot = commit.getSnapshot()
     editor.restore(snapshot)
-    changeTextEditor(snapshot.get_text())
+    changeTextEditor(snapshot)
 
-def changeTextEditor(newText):
+# ДОБАВИТЬ ИЗМЕНЕНИЕ СТИЛЯ -------------------------------------
+def changeTextEditor(snapshot):
+    newText = snapshot.get_text()
+
     text.delete('1.0', END)
     text.insert(1.0, newText)
+
+    global CURRENT_STYLE
+    new_style = createdStyle(snapshot.get_style())
+    print('NEW STYLE')
+
+    print(new_style.getConfig())
+    CURRENT_STYLE = new_style
+    upStyles()
 
 
 # добавить востановление параметров
@@ -209,14 +278,6 @@ def open_file():
 
 def info():
     messagebox.showinfo("Information", CURRENT_PROJECT.getInfo())
-
-
-def saveBranch():
-    commit = Commit(0, 'commit_first', editor.createSnapshot())
-    commit2 = Commit(1, 'commit_second', editor.createSnapshot())
-    master = Branch('master', '', [commit, commit2])
-    master.setHead(1)
-    master.saveBranch(FILE_CURRENT_BRANCH)
 
 
 def getBranch(filename):
@@ -296,86 +357,228 @@ def changeBranch():
     print("После выбора новой ветки FILE_CURRENT_BRANCH:", CURRENT_PROJECT.getCurrentBranch())
     print("CURRENT_BRANCH:", CURRENT_BRANCH.getName())
 
+    updateText(CURRENT_BRANCH.getHead())
+
+
+# БЛОК СО СТИЛЯМИ ------------------------------------------------
+
+def upStyles():
+
+    global CURRENT_STYLE
+
+    for tag in text.tag_names():
+        text.tag_remove(tag, "1.0", "end")
+
+    new_font = tkFont.Font(family=CURRENT_STYLE.getFont(), size=CURRENT_STYLE.getSize(),
+                           weight=CURRENT_STYLE.getBold(), slant=CURRENT_STYLE.getCursive())
+    label1.config(text='Size :{}'.format(CURRENT_STYLE.getSize()))
+
+    text.configure(font=new_font)
+
+    tags = CURRENT_STYLE.getTags()
+
+    for tag in tags:
+        tag_font = tag.getFont()
+        name_tag = tag.getName()
+        text.tag_add(name_tag, tag.getStart(), tag.getEnd())
+        text.tag_config(name_tag, font=tag_font)
+
+    return
+
 
 def families_changed(event):
-    text.configure(font=(families_cb.get()))
+    new_families = families_cb.get()
+    text.configure(font=new_families)
+    CURRENT_STYLE.setFont(new_families)
 
-
-# msg = f'You selected {families_cb.get()}!'
-# showinfo(title='Result', message=msg)
 
 def click_bigger():
-    curr_size = 14
-    start_index = text.index(tkinter.SEL_FIRST)
-    end_index = text.index(tkinter.SEL_LAST)
-    fontExample = tkFont.Font(family=families_cb.get(), size=curr_size, weight="bold", slant="italic")
-    print(text.get(start_index, end_index))
-    text.tag_add('tag1', start_index, end_index)
-    text.tag_config("tag1", font=fontExample)
+    global CURRENT_STYLE
+    current_size = CURRENT_STYLE.getSize()
 
-
-def click_smaller():
-    print(text.selection_get())
-    curr_size = 11
-    start_index = text.index(tkinter.SEL_FIRST)
-    end_index = text.index(tkinter.SEL_LAST)
-    fontExample = tkFont.Font(family=families_cb.get(), size=curr_size, weight="bold", slant="italic")
-    print(text.get(start_index, end_index))
-    text.tag_add('tag1', start_index, end_index)
-    text.tag_config("tag1", font=fontExample)
-
-def click_bold():
+    if current_size >= 62:
+        return
 
     indexes = getPartOfText()
 
     if indexes == -1:
 
-        print("Стиль ко всему тексту")
+        CURRENT_STYLE.setSize(current_size + 2)
+
+        font = tkFont.Font(family=CURRENT_STYLE.getFont(), size=CURRENT_STYLE.getSize(), weight=CURRENT_STYLE.getBold(),
+                           slant=CURRENT_STYLE.getCursive())
+        text.config(font=font)
+        label1.config(text='Size :{}'.format(CURRENT_STYLE.getSize()))
+        return
+
+    start_index, end_index = indexes
+
+    is_exist = CURRENT_STYLE.findTag(start_index, end_index)
+
+    if is_exist != -1:
+
+        print()
+        tags = CURRENT_STYLE.getTags()
+        current_tag = tags[is_exist]
+        print('Тэг ' + current_tag.getName() + ' существует')
+
+        current_size = current_tag.getSize()
+
+        print('Old size' + str(current_size))
+        current_tag.setSize(current_size + 2)
+        print('New size' + str(current_tag.getSize()))
+
+        text.tag_remove(current_tag.getName(), "1.0", "end")
+
+        text.tag_add(current_tag.getName(), current_tag.getStart(), current_tag.getEnd())
+        text.tag_config(current_tag.getName(), font=current_tag.getFont())
+
+        CURRENT_STYLE.updateTag(is_exist, current_tag)
+
+    else:
+
+        new_tag = Tag(start_index + end_index + 'bigger', start_index, end_index, CURRENT_STYLE.getSize()+2)
+        text.tag_add(new_tag.getName(), new_tag.getStart(), new_tag.getEnd())
+
+        fontExample = tkFont.Font(family=new_tag.getFont(), size=int(new_tag.getSize()),
+                                  weight=new_tag.getBold(), slant=new_tag.getCursive())
+        text.tag_config(new_tag.getName(), font= fontExample)
+
+        CURRENT_STYLE.addTag(new_tag)
+
+
+def click_smaller():
+    global CURRENT_STYLE
+    current_size = CURRENT_STYLE.getSize()
+    if current_size <= 2:
+        return
+
+    indexes = getPartOfText()
+
+    if indexes == -1:
+
+        CURRENT_STYLE.setSize(current_size - 2)
+
+        font = tkFont.Font(family=CURRENT_STYLE.getFont(), size=CURRENT_STYLE.getSize(), weight=CURRENT_STYLE.getBold(),
+                           slant=CURRENT_STYLE.getCursive())
+        text.config(font=font)
+        label1.config(text='Size :{}'.format(CURRENT_STYLE.getSize()))
+        return
+
+    start_index, end_index = indexes
+
+    is_exist = CURRENT_STYLE.findTag(start_index, end_index)
+
+    if is_exist != -1:
+
+        print()
+        tags = CURRENT_STYLE.getTags()
+        current_tag = tags[is_exist]
+        print('Тэг ' + current_tag.getName() + ' существует')
+
+        current_size = current_tag.getSize()
+
+        print('Old size' + str(current_size))
+        current_tag.setSize(current_size - 2)
+        print('New size' + str(current_tag.getSize()))
+
+        text.tag_remove(current_tag.getName(), "1.0", "end")
+
+        text.tag_add(current_tag.getName(), current_tag.getStart(), current_tag.getEnd())
+        text.tag_config(current_tag.getName(), font=current_tag.getFont())
+
+        CURRENT_STYLE.updateTag(is_exist, current_tag)
+
+    else:
+
+        new_tag = Tag(start_index + end_index + 'smaller', start_index, end_index, CURRENT_STYLE.getSize() + 2)
+        text.tag_add(new_tag.getName(), new_tag.getStart(), new_tag.getEnd())
+
+        fontExample = tkFont.Font(family=new_tag.getFont(), size=int(new_tag.getSize()),
+                                  weight=new_tag.getBold(), slant=new_tag.getCursive())
+        text.tag_config(new_tag.getName(), font=fontExample)
+
+        CURRENT_STYLE.addTag(new_tag)
+
+
+def infoStyle(event):
+    print("Current Style:")
+    print("Families: " + CURRENT_STYLE.getFont())
+    print("Size: ", str(CURRENT_STYLE.getSize()))
+    print("Bold: " + CURRENT_STYLE.getBold())
+    print("Cursive: " + CURRENT_STYLE.getCursive())
+
+
+def infoTags(event):
+
+    print(text.tag_names())
+    tags = CURRENT_STYLE.getTags()
+    for tag in tags:
+        print(tag.getConfig())
+
+def deleteAllTags():
+    CURRENT_STYLE.setTags([])
+    upStyles()
+
+
+def click_bold():
+
+    global CURRENT_STYLE
+    indexes = getPartOfText()
+
+    if indexes == -1:
+
         if CURRENT_STYLE.getBold() == BOLD:
             CURRENT_STYLE.setBold("normal")
         else:
             CURRENT_STYLE.setBold()
 
-        config_style = CURRENT_STYLE.getConfig()
-        font = tkFont.Font(family=config_style['font'], size=config_style['size'], weight=config_style['bold'], slant=config_style['cursive'])
+        font = tkFont.Font(family=CURRENT_STYLE.getFont(), size=CURRENT_STYLE.getSize(), weight=CURRENT_STYLE.getBold(),
+                           slant=CURRENT_STYLE.getCursive())
         text.config(font=font)
 
     else:
         start_index, end_index = indexes
 
-        is_exist = CURRENT_STYLE.searchTag(start_index,end_index,BOLD,BOLD)
+        is_exist = CURRENT_STYLE.findTag(start_index, end_index)
 
         if is_exist != -1:
-            print()
 
+            print()
             tags = CURRENT_STYLE.getTags()
             current_tag = tags[is_exist]
-            print('Тэг '+current_tag.getName() + ' существует')
+            print('Тэг ' + current_tag.getName() + ' существует')
+            # text.tag_remove(current_tag.getName(), "1.0", "end")
+            # CURRENT_STYLE.deleteTag(is_exist)
 
-            if CURRENT_STYLE.tagIsUniqueWithoutOne(current_tag, 'bold'):
+            if CURRENT_STYLE.tagIsUniqueWithoutOne(current_tag, BOLD):
+
                 print('Полностью удаляем тэг')
                 text.tag_remove(current_tag.getName(), "1.0", "end")
                 CURRENT_STYLE.deleteTag(is_exist)
             else:
 
-                if(current_tag.getBold == BOLD):
+                if(current_tag.getBold() == BOLD):
                     current_tag.setBold("normal")
                 else:
                     current_tag.setBold()
                 text.tag_remove(current_tag.getName(), "1.0", "end")
+
                 text.tag_add(current_tag.getName(), current_tag.getStart(),  current_tag.getEnd())
-                text.tag_config(current_tag.getName(), font= current_tag.getFont())
+                text.tag_config(current_tag.getName(), font=current_tag.getFont())
 
                 CURRENT_STYLE.updateTag(is_exist, current_tag)
 
         else:
-            stand_conf = CURRENT_STYLE.getConfig()
-            new_tag = Tag(start_index+end_index+'bold', start_index,end_index,stand_conf['size'],stand_conf['font'],"bold", stand_conf['cursive'] )
+
+            new_tag = Tag(start_index + end_index + 'bold', start_index, end_index, CURRENT_STYLE.getFont(),
+                          CURRENT_STYLE.getSize(), BOLD, CURRENT_STYLE.getCursive())
+
             text.tag_add(new_tag.getName(), new_tag.getStart(), new_tag.getEnd())
-            text.tag_config(new_tag.getName(), font=new_tag.getFont())
+            temp_font = new_tag.getFont()
+            text.tag_config(new_tag.getName(), font=temp_font)
 
             CURRENT_STYLE.addTag(new_tag)
-
 
 
 def getPartOfText():
@@ -386,13 +589,14 @@ def getPartOfText():
     except TclError:
         return -1
 
-def click_cursive():
 
+def click_cursive():
+    global CURRENT_STYLE
     indexes = getPartOfText()
 
     if indexes == -1:
 
-        print("Стиль ко всему тексту")
+
         if CURRENT_STYLE.getCursive() == CURSIVE:
             CURRENT_STYLE.setCursive("roman")
         else:
@@ -401,27 +605,31 @@ def click_cursive():
         config_style = CURRENT_STYLE.getConfig()
         font = tkFont.Font(family=config_style['font'], size=config_style['size'], weight=config_style['bold'],
                            slant=config_style['cursive'])
+
         text.config(font=font)
 
     else:
+
         start_index, end_index = indexes
 
-        is_exist = CURRENT_STYLE.searchTag(start_index, end_index, 'cursive', CURSIVE)
+        is_exist = CURRENT_STYLE.findTag(start_index, end_index)
 
         if is_exist != -1:
             print()
 
             tags = CURRENT_STYLE.getTags()
             current_tag = tags[is_exist]
+
             print('Тэг ' + current_tag.getName() + ' существует')
 
             if CURRENT_STYLE.tagIsUniqueWithoutOne(current_tag, 'cursive'):
+
                 print('Полностью удаляем тэг')
                 text.tag_remove(current_tag.getName(), "1.0", "end")
                 CURRENT_STYLE.deleteTag(is_exist)
             else:
 
-                if (current_tag.getCursive() == CURSIVE):
+                if current_tag.getCursive() == CURSIVE:
                     current_tag.setCursive("roman")
                 else:
                     current_tag.setCursive()
@@ -433,21 +641,15 @@ def click_cursive():
                 CURRENT_STYLE.updateTag(is_exist, current_tag)
 
         else:
+
             stand_conf = CURRENT_STYLE.getConfig()
-            new_tag = Tag(start_index + end_index + 'cursive', start_index, end_index, stand_conf['size'],
-                          stand_conf['font'], stand_conf['bold'], "italic")
+            new_tag = Tag(start_index + end_index + 'cursive', start_index, end_index, stand_conf['font'],
+                          stand_conf['size'],stand_conf['bold'], CURSIVE)
             text.tag_add(new_tag.getName(), new_tag.getStart(), new_tag.getEnd())
             text.tag_config(new_tag.getName(), font=new_tag.getFont())
 
             CURRENT_STYLE.addTag(new_tag)
 
-def backspace(event):
-    print(text.index(SEL_LAST))
-    print('backspace')
-
-def uno(event):
-    # print(text.index(SEL_LAST))
-    print('uno')
 
 def exit():
     global root
@@ -480,8 +682,8 @@ text.configure(yscrollcommand=scrollb.set)
 
 toolbar = Frame(root)
 toolbar.pack(side=TOP, fill=X)
-
-families = ("Arial" ,"Times", "Courier", "Helvetica")
+# "Arial" ,
+families = ("Times", "Courier", "Helvetica")
 selected_fam = tkinter.StringVar()
 families_cb = ttk.Combobox(toolbar, textvariable=selected_fam)
 
@@ -500,14 +702,14 @@ btn_smaller = Button(toolbar, text="A↓", background="#555", foreground="#ccc",
 btn_smaller.pack(side=LEFT, padx=0, pady=0)
 
 btn_bold = Button(toolbar, text="B", background="#555", foreground="#ccc",
-                    command=click_bold)
+                  command=click_bold)
 btn_bold.pack(side=LEFT, padx=0, pady=0)
 
 btn_cursive = Button(toolbar, text="I", background="#555", foreground="#ccc",
-                    command=click_cursive)
+                     command=click_cursive)
 btn_cursive.pack(side=LEFT, padx=0, pady=0)
 
-label1 = Label(toolbar,text="Size text: 16")
+label1 = Label(toolbar, text="Size text: 16") # ИЗМЕНИТЬ ОТОБРАЖЕНИЕ ТЕКУЩЕГО РАЗМЕРА ТЕКСТА
 label1.pack(side=LEFT, padx=0, pady=0)
 
 text.pack()
@@ -530,59 +732,54 @@ vcsMenu.add_command(label="Show commit", command=showCommits)
 branchMenu.add_command(label="New", command=createBranch)
 branchMenu.add_command(label="Change", command=changeBranch)
 # Save
-branchMenu.add_command(label="All branches", command=saveBranch)
+# branchMenu.add_command(label="Save branch", command=saveBranch)
 # branchMenu.add_command(label="Get", command=getBranch)
 
 
 menuBar.add_cascade(label="VCS", menu=vcsMenu)
 menuBar.add_cascade(label="Branch", menu=branchMenu)
 menuBar.add_cascade(label="Info", command=info)
-menuBar.add_cascade(label="Save", menu=saveTextStat)
+menuBar.add_cascade(label="Save", command=saveTextStat)
 menuBar.add_cascade(label="Undo", command=Undo)
+# menuBar.add_cascade(label="shortSaving", command=shortSaving)
+# menuBar.add_cascade(label="showShortSaving", command=showShortSaving)
 # menuBar.add_cascade(label="Show states", command=show_states)
-
+menuBar.add_cascade(label="Delete tag", command=deleteAllTags)
 menuBar.add_cascade(label="Exit", command=exit)
 
 root.config(menu=menuBar)
 
-
-
 # ПРЕДВАРИТЕЛЬНАЯ НАСТРОЙКА ПРОЕКТА
+
 CURRENT_PROJECT = getProjectSetting()
 FILE_CURRENT_BRANCH = CURRENT_PROJECT.getCurrentBranch()
 CURRENT_BRANCH = getBranch(FILE_CURRENT_BRANCH)
+
 print()
 print("Первоначальная настройка проекта завершена")
 print("FILE_MAIN_BRANCH: ", FILE_CURRENT_BRANCH)
 print("CURRENT_BRANCH: ", CURRENT_BRANCH.getName())
 print()
 
-
-
-
-
-
-if(CURRENT_BRANCH.getSize()>0):
+if (CURRENT_BRANCH.getSize() > 0):
     text.insert(END, CURRENT_BRANCH.getHead().getSnapshot().get_text())
-    CURRENT_STYLE = CURRENT_BRANCH.getHead().getSnapshot().get_styles()
+    CURRENT_STYLE = CURRENT_BRANCH.getHead().getSnapshot().get_style()
 else:
     CURRENT_STYLE = Style()
 
-current_font = tkFont.Font(family=CURRENT_STYLE.getFont(), size=CURRENT_STYLE.getSize(),
-                          weight=CURRENT_STYLE.getBold(), slant=CURRENT_STYLE.getCursive())
+upStyles() # ОБНОВЛЕНИЕ СТИЛЯ ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
-text.configure(font=current_font)
-editor = Editor(text.get('1.0', tkinter.END), styles=CURRENT_STYLE)
+editor = Editor(text.get('1.0', tkinter.END), style=CURRENT_STYLE)
 
 caretaker = Caretaker(editor)
 caretaker.backup()
 
-
 # Добавление команд на нажатие клавиатуры
-root.bind('<Control-s>', saveTextStat)
-root.bind('<Control-z>', Undo)
-root.bind('<BackSpace>', backspace)
-root.bind('<Control-a>', uno)
+# root.bind('<Control-s>', saveTextStat)
+# root.bind('<Control-z>', Undo)
+root.bind('<Control-q>', infoStyle)
+root.bind('<Control-w>', infoTags)
+
 
 root.protocol('WM_DELETE_WINDOW', exit)
 root.mainloop()
