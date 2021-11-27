@@ -47,7 +47,7 @@ class Editor:
         """
         self.text = memento.get_text()
         self.style = memento.get_style()
-        print(f"Originator: My text has changed to: {self.text}")
+        # print(f"Originator: My text has changed to: {self.text}")
 
 
 class Snapshot(Memento):

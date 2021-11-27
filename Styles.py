@@ -9,9 +9,19 @@ class Style:
         self.font = font
         self.bold = bold
         self.cursive = cursive
-        print(f"Styles: My initial font is: {self.font}")
+        # print(f"Styles: My initial font is: {self.font}")
 
     def setFont(self, font):
+
+        old = self.font
+        tags = self.tags
+        index_tag = self.indexTagForUpdate('font',old)
+
+        while index_tag!=-1:
+            tags[index_tag].setFont(font)
+            index_tag = self.indexTagForUpdate('font', old)
+
+        self.tags = tags
         self.font = font
 
     def setSize(self, size):
@@ -66,6 +76,14 @@ class Style:
                     return i
         return -1
 
+    def indexTagForUpdate(self,feature,old_value):
+
+        for i in range(len(self.tags)):
+            if self.tags[i].getConfig()[feature] == old_value:
+                return i
+        return -1
+
+
 # ПРОВЕРКА ТЕГА НА УНИКАЛЬНОСТЬ. ТЕГ СОДЕРЖИТ ОДИН ОТЛИЧНЫЙ ПАРАМЕТР ИЛИ НЕСКОЛЬКО
     def tagIsUniqueWithoutOne(self, tag, feature):
 
@@ -94,7 +112,7 @@ class Tag:
         self.font = font
         self.bold = bold
         self.cursive = cursive
-        print(f"tag: My initial name is: {self.name}")
+        # print(f"tag: My initial name is: {self.name}")
 
     def setFont(self, font):
         self.font = font

@@ -3,9 +3,6 @@
     Функционал:
     -   Восстановление состояния по сохраненному коммиту
     -   Выбор ветки и выбор коммита
-
-    НЕ ИЗМЕНЯЕТСЯ СОДЕРЖИМОЕ ФАЙЛА ПРИ ИЗМЕНЕНИИ ВЕТКИ\КОМИТА
-    НЕТ КНОПКИ ОТКАТИТЬСЯ
 '''
 
 import tkinter
@@ -31,12 +28,11 @@ FILE_NAME = tkinter.NONE
 
 CURRENT_COMMIT = 0
 
-# файл с названиями всех веток
+
 FILE_PROJECT = ".vsc/text_editor.txt"
 
 CURRENT_STYLE = Style()
 
-styles=[]
 
 class Caretaker():
     """
@@ -113,14 +109,17 @@ def commit():
 
     shops = editor.createSnapshot()
 
-    parent = CURRENT_BRANCH.getSize() - 1 if CURRENT_BRANCH.getSize() != 0 else 0
-
+    last_index = CURRENT_BRANCH.getSize() - 1 if CURRENT_BRANCH.getSize() != 0 else 0
+    parent = {
+        'index': last_index,
+        'branch': CURRENT_BRANCH.getName()
+    }
     current_commit = Commit(CURRENT_BRANCH.getSize(), name, shops, CURRENT_BRANCH.getName(), parent)
     print('Стиль сохраняемого коммита', end=' : ')
     print(shops.get_style().getConfig())
 
     CURRENT_BRANCH.addCommit(current_commit)
-    showAllStylesForCommits()
+
 
 def showAllStylesForCommits():
 
@@ -138,6 +137,33 @@ def showAllStylesForCommits():
 # Сохранение коммитов в файле ветки
 def push():
     CURRENT_BRANCH.saveBranch(FILE_CURRENT_BRANCH)
+
+def reset():
+
+    global CURRENT_BRANCH
+    current_commit = CURRENT_BRANCH.getHead()
+    parent = current_commit.getParent()
+    # print(parent)
+
+    parent_branch = parent['branch']
+    parent_index = parent['index']
+
+    if CURRENT_BRANCH.getName() == parent_branch:
+
+        caretaker.restart()
+        CURRENT_BRANCH.setHead(parent_index)
+        print('Указатель сменен на коммит: ', CURRENT_BRANCH.getHead().getName())
+        updateText(CURRENT_BRANCH.getHead())
+
+    else:
+
+        CURRENT_PROJECT.setCurrentBranch(parent_branch)
+        FILE_CURRENT_BRANCH = CURRENT_PROJECT.getCurrentBranch()
+        CURRENT_BRANCH = getBranch(FILE_CURRENT_BRANCH)
+        # print("После выбора новой ветки FILE_CURRENT_BRANCH:", CURRENT_PROJECT.getCurrentBranch())
+        print("CURRENT_BRANCH:", CURRENT_BRANCH.getName())
+
+        updateText(CURRENT_BRANCH.getHead())
 
 
 # Загрузка коммита из файла
@@ -188,17 +214,7 @@ def saveTextStat():
     caretaker.backup()
 
 
-def shortSaving():
-    print('saving state...')
-    styles.append(createdStyle(CURRENT_STYLE))
-    for style in styles:
-        print(style)
 
-
-def showShortSaving():
-    print('Show states')
-    for style in styles:
-        print(style.getConfig())
 
 def preparingForCommit():
     editor.setText(text.get('1.0', tkinter.END))
@@ -215,18 +231,6 @@ def Undo():
 
     moment = editor.createSnapshot()
     changeTextEditor(moment)
-    # newText = moment.get_text()
-    #
-    # text.delete('1.0', END)
-    # text.insert(1.0, newText)
-    #
-    # global CURRENT_STYLE
-    # new_style = createdStyle(moment.get_style())
-    # print('NEW STYLE')
-    #
-    # print(new_style.getConfig())
-    # CURRENT_STYLE = new_style
-    # upStyles()
 
 
 def updateText(commit):
@@ -235,7 +239,7 @@ def updateText(commit):
     editor.restore(snapshot)
     changeTextEditor(snapshot)
 
-# ДОБАВИТЬ ИЗМЕНЕНИЕ СТИЛЯ -------------------------------------
+
 def changeTextEditor(snapshot):
     newText = snapshot.get_text()
 
@@ -244,17 +248,13 @@ def changeTextEditor(snapshot):
 
     global CURRENT_STYLE
     new_style = createdStyle(snapshot.get_style())
-    print('NEW STYLE')
 
-    print(new_style.getConfig())
     CURRENT_STYLE = new_style
     upStyles()
 
 
-# добавить востановление параметров
 def show_states():
     caretaker.show_history()
-
 
 def save_as():
     out = asksaveasfile(mode='w', defaultextension='txt')
@@ -287,10 +287,10 @@ def getBranch(filename):
     global CURRENT_PROJECT
 
     if res == -1:
-        print('Файл пустой, создается новая ветка')
+        # print('Файл пустой, создается новая ветка')
         return Branch(CURRENT_PROJECT.getBranchByFilename(filename))
     elif res == -2:
-        print('Файл не найден, создан новый')
+        # print('Файл не найден, создан новый')
         return Branch(CURRENT_PROJECT.getBranchByFilename(filename))
 
     return branch
@@ -310,13 +310,17 @@ def getProjectSetting():
 def createBranch():
     name = eg.enterbox(msg='Введите название новой ветки', title='Создание новой ветки', default='branch_1')
 
-    print(name)
     if name == None:
         return
 
     global CURRENT_BRANCH, CURRENT_PROJECT, FILE_CURRENT_BRANCH
 
-    parent = CURRENT_BRANCH.getSize() - 1 if CURRENT_BRANCH.getSize() != 0 else 0
+    last_index = CURRENT_BRANCH.getSize() - 1 if CURRENT_BRANCH.getSize() != 0 else 0
+
+    parent={
+        'index': last_index,
+        'branch': CURRENT_BRANCH.getName()
+    }
 
     preparingForCommit()
 
@@ -336,6 +340,7 @@ def createBranch():
     CURRENT_BRANCH.addCommit(current_commit)
 
     print("Количество коммитов в ветке: ", len(CURRENT_BRANCH.getCommits()))
+    print()
 
 
 def changeBranch():
@@ -354,13 +359,13 @@ def changeBranch():
     CURRENT_PROJECT.setCurrentBranch(out)
     FILE_CURRENT_BRANCH = CURRENT_PROJECT.getCurrentBranch()
     CURRENT_BRANCH = getBranch(FILE_CURRENT_BRANCH)
-    print("После выбора новой ветки FILE_CURRENT_BRANCH:", CURRENT_PROJECT.getCurrentBranch())
+    # print("После выбора новой ветки FILE_CURRENT_BRANCH:", CURRENT_PROJECT.getCurrentBranch())
     print("CURRENT_BRANCH:", CURRENT_BRANCH.getName())
 
     updateText(CURRENT_BRANCH.getHead())
 
 
-# БЛОК СО СТИЛЯМИ ------------------------------------------------
+# БЛОК СО СТИЛЯМИ -------------------------------------------------------------------------------
 
 def upStyles():
 
@@ -388,8 +393,16 @@ def upStyles():
 
 def families_changed(event):
     new_families = families_cb.get()
-    text.configure(font=new_families)
+
     CURRENT_STYLE.setFont(new_families)
+
+    upStyles()
+
+    # new_font = tkFont.Font(family=CURRENT_STYLE.getFont(), size=CURRENT_STYLE.getSize(),
+    #                        weight=CURRENT_STYLE.getBold(), slant=CURRENT_STYLE.getCursive())
+    #
+    # text.configure(font=new_font)
+
 
 
 def click_bigger():
@@ -423,10 +436,7 @@ def click_bigger():
         print('Тэг ' + current_tag.getName() + ' существует')
 
         current_size = current_tag.getSize()
-
-        print('Old size' + str(current_size))
         current_tag.setSize(current_size + 2)
-        print('New size' + str(current_tag.getSize()))
 
         text.tag_remove(current_tag.getName(), "1.0", "end")
 
@@ -437,11 +447,11 @@ def click_bigger():
 
     else:
 
-        new_tag = Tag(start_index + end_index + 'bigger', start_index, end_index, CURRENT_STYLE.getSize()+2)
+        new_tag = Tag(start_index + end_index + 'bigger', start_index, end_index,CURRENT_STYLE.getFont(), CURRENT_STYLE.getSize()+2,
+                      CURRENT_STYLE.getBold(),CURRENT_STYLE.getCursive())
         text.tag_add(new_tag.getName(), new_tag.getStart(), new_tag.getEnd())
 
-        fontExample = tkFont.Font(family=new_tag.getFont(), size=int(new_tag.getSize()),
-                                  weight=new_tag.getBold(), slant=new_tag.getCursive())
+        fontExample = new_tag.getFont()
         text.tag_config(new_tag.getName(), font= fontExample)
 
         CURRENT_STYLE.addTag(new_tag)
@@ -491,11 +501,13 @@ def click_smaller():
 
     else:
 
-        new_tag = Tag(start_index + end_index + 'smaller', start_index, end_index, CURRENT_STYLE.getSize() + 2)
+        new_tag = Tag(start_index + end_index + 'smaller', start_index, end_index,CURRENT_STYLE.getFont(), CURRENT_STYLE.getSize() + 2,CURRENT_STYLE.getBold(),
+                      CURRENT_STYLE.getCursive())
+
         text.tag_add(new_tag.getName(), new_tag.getStart(), new_tag.getEnd())
 
-        fontExample = tkFont.Font(family=new_tag.getFont(), size=int(new_tag.getSize()),
-                                  weight=new_tag.getBold(), slant=new_tag.getCursive())
+        fontExample = new_tag.getFont()
+
         text.tag_config(new_tag.getName(), font=fontExample)
 
         CURRENT_STYLE.addTag(new_tag)
@@ -726,6 +738,7 @@ branchMenu = tkinter.Menu(menuBar)
 
 vcsMenu.add_command(label="Commit", command=commit)
 vcsMenu.add_command(label="Push", command=push)
+vcsMenu.add_command(label="Reset", command=reset)
 vcsMenu.add_command(label="Checkout", command=checkout)
 vcsMenu.add_command(label="Show commit", command=showCommits)
 

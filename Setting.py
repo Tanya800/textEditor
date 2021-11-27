@@ -9,6 +9,7 @@ DEFAULT_BRANCHES = {
     'master': '.vsc/master.txt'
 }
 
+CURRENT = 'current'
 
 class Project:
 
@@ -36,10 +37,10 @@ class Project:
         return -1
 
     def getCurrentBranch(self):
-        return self.branches['current']
+        return self.branches[CURRENT]
 
     def setCurrentBranch(self, name):
-        self.branches['current'] = self.getFilenameBranch(name)
+        self.branches[CURRENT] = self.getFilenameBranch(name)
 
     def addBranch(self, name, filename):
         self.branches[name] = filename

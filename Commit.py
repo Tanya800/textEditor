@@ -54,6 +54,9 @@ class Commit():
     def getSnapshot(self):
         return self.snapshot
 
+    def getParent(self):
+        return self.parent
+
     def getAll(self):
         return {
             'index': self.index,

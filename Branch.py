@@ -79,5 +79,5 @@ class Branch:
         self.size = newBranch.size
         self.head = newBranch.head
         self.commits = newBranch.commits
-        print('Branch was read: {}'.format(self.name))
+        # print('Branch was read: {}'.format(self.name))
         return 1
